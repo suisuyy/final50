@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 
 from helpers import login_required, allowed_file, apology
 
-UPLOAD_FOLDER = '/home/cyl/final-project-cs50/static/files'
+UPLOAD_FOLDER = '/home/cyl/final50/static/files'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','zip'])
 
 # Configure application
@@ -20,7 +20,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Ensure templates are auto-reloaded
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 #not support file >30M
-app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 # Ensure responses aren't cached
 @app.after_request
@@ -66,6 +66,10 @@ def savefile():
             flash('No file part')
             return apology("file not found",404)
         file = request.files['file']
+        
+        total=db.execute("SELECT * FROM files where id='0'")[0]
+        if total["size"]>20000:
+            return apology("failed because we are full of storage",406)
         # if user does not select file, browser also
         # submit an empty part without filename
         if file.filename == '' or request.form.get("filename") == '':
@@ -80,8 +84,9 @@ def savefile():
         file.seek(0, os.SEEK_END)
         filesize=round(file.tell()/1024/1024,3)
         #insert to databse files table
-        db.execute("INSERT INTO 'files' ('id','name','size') VALUES (NULL,'{}','{}')".format(filename,filesize))
-        return apology("this not a error,file saved succefully",200)
+        db.execute("INSERT INTO 'files' ('id','name','size') VALUES (NULL,'{}','{}')".format(request.form.get("filename"),filesize))
+        db.execute("UPDATE files SET id='0', name='total', size='{}' WHERE rowid = 0".format(total["size"]+filesize))
+        return apology("no error,file saved succefully",200)
 
 
 @app.route("/getfile",methods=["GET"])
@@ -111,7 +116,6 @@ def note():
         note_counter+=1
         if note_counter>100:
             break
-    #TODO
     return render_template("note.html", notes=noteslist, user_id=session["user_id"])
 
 
@@ -128,14 +132,13 @@ def savenote():
     #if GET simply redirct to /note
     if request.method=="GET":
         return redirect("/note")
-    #TODO
     usertag=request.form.get("usertag")
     usernote=request.form.get("usernote")
     db.execute("INSERT INTO notes (id,user_id,tag,note) VALUES (NULL,:user_id,:tag,:note) ",user_id=session["user_id"],tag=usertag,note=usernote)
     return jsonify(True)
 
 
-@app.route("/deletenote",methods=["POST"])
+@app.route("/deletenote",methods=["GET"])
 @login_required
 def deletenote():
     """
@@ -143,7 +146,7 @@ def deletenote():
         if delete successfully, return jsonify(True), else return jsonify(False)
     """
     note_id = request.form.get("id")
-    db.execute("DELETE FROM notes WHERE id=:id", id=note_id)
+    db.execute("DELETE FROM notes WHERE id={}".format(note_id) )
     return jsonify(True)
 
 
@@ -153,8 +156,7 @@ def searchnote():
         use request.args.get("keyword") to get keyword,then search the keyword
         return: a 3 elements list like[ ["tag","text",id], ["game","CSgo",0],["book","the c program language",1] ]
     """
-    #TODO
-    #here are return example ,u should return list like this use jsonify(),so i can use result easyly in javascript
+    
     keyword=request.args.get("keyword")
     #print("****keyword",keyword)
     result_rows=db.execute("SELECT * FROM notes  WHERE note LIKE '%{}%'".format(keyword))
@@ -182,7 +184,7 @@ def check():
     username = request.args.get("username")
 
     # check if the user already exists
-    rows = db.execute("SELECT * FROM users WHERE username = :username", username=username)
+    rows = db.execute("SELECT * FROM users WHERE name = :username", name=username)
     if rows or not username:
         return jsonify(False)
 
@@ -197,6 +199,9 @@ def login():
     session.clear()
     session["user_id"]=0
 
+    # User reached route via GET (as by clicking a link or via redirect)
+    if request.method=="GET":
+        return render_template("login.html")
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
@@ -209,7 +214,7 @@ def login():
             return apology("must provide password", 403)
 
         # Query database for username
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
+        rows = db.execute("SELECT * FROM users WHERE name = :username",
                           username=request.form.get("username"))
 
         # Ensure username exists and password is correct
@@ -222,9 +227,6 @@ def login():
         # Redirect user to home page
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("login.html")
 
 
 @app.route("/logout")
@@ -247,6 +249,9 @@ def register():
     session.clear()
     session["user_id"]=0
 
+    # User reached route via GET (as by clicking a link or via redirect)
+    if request.method=="GET":
+        return render_template("register.html")
     # User reached route via POST (as by submitting a form via POST)
     if request.method == "POST":
 
@@ -271,41 +276,27 @@ def register():
             return apology("Password must be atleast 8 characters long")
 
         # check if the user already exists
-        rows = db.execute("SELECT * FROM users WHERE username = :username", username=username)
+        rows = db.execute("SELECT * FROM users WHERE name = :username", name=username)
         if rows:
             return apology("this username is already taken")
 
         # add user to the database
-        db.execute("INSERT INTO users ('username','hash') VALUES (:username,:password)",
-                   username=username, password=generate_password_hash(password))
+        db.execute("INSERT INTO users ('name','hash') VALUES (:username,:password)",
+                   name=username, password=generate_password_hash(password))
 
         # Remember which user has logged in
-        rows = db.execute("SELECT * FROM users WHERE username = :username", username=username)
+        rows = db.execute("SELECT * FROM users WHERE name = :username", name=username)
         session["user_id"] = rows[0]["id"]
 
         # Redirect user to home page
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
-    else:
-        return render_template("register.html")
 
 @app.route("/about",methods=["GET"])
 def about():
     return render_template("about.html")
 
-def errorhandler(e):
-    """Handle error"""
-    if not isinstance(e, HTTPException):
-        e = InternalServerError()
-    return apology(e.name, e.code)
 
 
-# Listen for errors
-for code in default_exceptions:
-    app.errorhandler(code)(errorhandler)
 
 
-# run flask app by running the python file
-if __name__ == "__main__":
-  app.run()
