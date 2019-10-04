@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Note
+{% endblock %}
+
+{% block main %}
+
+<div id="do_notediv">
+    <form action="searchnote" method="get">
+        <div class="input-group mb-3">
+            <input type="text" name="keyword" id="searchinbox" class="form-control" placeholder="Search for a note"
+                autofocus aria-label="Recipient's username" aria-describedby="basic-addon2">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" id="searchnotebtn" type="submit">Search</button>
+            </div>
+        </div>
+    </form>
+
+    <form action="savenote" method="post" id="savenoteform">
+        <div class="form-group" id="notebox">
+            <textarea class="noborder" id="noteinbox" name="note" placeholder="Take a note here" rows="4"></textarea>
+            <p></p>
+        </div>
+
+        <div class="input-group mb-3" id="taginputgroup">
+            <input type="text" name="tag" id="taginbox" class="form-control" placeholder="TAG"
+                aria-label="Recipient's username" aria-describedby="basic-addon2">
+            <div class="input-group-append">
+                <button class="btn btn-outline-secondary" id="savenotebtn" type="submit">Save</button>
+            </div>
+        </div>
+    </form>
+</div>
+<p class="notice">100 most recent notes:</p>
+<div class="flex-container" id="allnotes">
+    {% for anote in notes %}
+    <div class="notediv" id="notediv{{ anote[2] }}">
+        <textarea rows="5">{{ anote[1] }}</textarea>
+        <div class="tagtext">
+            <button class="zoombtn" onclick="zoom()" zoomed="false" value="{{ anote[2] }}">🍳+</button>
+            {{ anote[0] }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    if (window.innerWidth < 1420) {
+        document.querySelectorAll(".notediv").forEach(notediv => {
+            notediv.style.width = "32%";
+        });
+        document.querySelectorAll(".notediv")
+    }
+    if (window.innerWidth < 1220) {
+        document.querySelectorAll(".notediv").forEach(notediv => {
+            notediv.style.width = "48.3%";
+        });
+        document.querySelectorAll(".notediv")
+    }
+    if (window.innerWidth < 1000) {
+        document.querySelectorAll(".notediv").forEach(notediv => {
+            notediv.style.width = "98%";
+        });
+        document.querySelectorAll(".notediv")
+    }
+    if (window.innerWidth < 600) {
+        document.querySelector("#taginputgroup").style.paddingLeft = "0";
+    }
+    window.addEventListener('resize', function () {
+        if (window.innerWidth < 1420) {
+            document.querySelectorAll(".notediv").forEach(notediv => {
+                notediv.style.width = "32%";
+            });
+            document.querySelectorAll(".notediv")
+        }
+        if (window.innerWidth < 1220) {
+            document.querySelectorAll(".notediv").forEach(notediv => {
+                notediv.style.width = "48.3%";
+            });
+            document.querySelectorAll(".notediv")
+        }
+        if (window.innerWidth < 1000) {
+            document.querySelectorAll(".notediv").forEach(notediv => {
+                notediv.style.width = "98%";
+            });
+            document.querySelectorAll(".notediv")
+        }
+        if (window.innerWidth < 700) {
+            document.querySelector("#taginputgroup").style.paddingLeft = "0";
+        }
+        else {
+            document.querySelector("#taginputgroup").style.paddingLeft = "40%";
+        }
+    });
+
+    noteIput = document.querySelector("#noteinbox")
+    tagIput = document.querySelector("#taginbox")
+    searchIput = document.querySelector("#searchinbox")
+
+    notesElement = document.querySelector("#allnotes");
+
+    saveButton = document.querySelector("#savenotebtn")
+
+    searchButton = document.querySelector("#searchnotebtn")
+
+    saveButton.addEventListener("click", function (evnet) {
+        //stop default action
+        event.preventDefault();
+        //check if empty
+        if (!noteIput.value) {
+            noteIput.placeholder = " take some note first!"
+            setTimeout(() => {
+                noteIput.placeholder = "click here take some note now!"
+            }, 4000);
+            return
+        }
+        if (!tagIput.value) {
+            tagIput.placeholder = "need a tag"
+            setTimeout(() => {
+                tagIput.placeholder = "TAG"
+            }, 4000);
+            return
+        }
+
+        saveButton.disabled = true;
+        saveButton.innerText = "Saving.."
+        setTimeout(function () {
+            saveButton.disabled = false;
+        }, 2000);
+
+
+
+        $.post("/savenote",
+            {
+                usertag: $("#taginbox").val(),
+                usernote: $("#noteinbox").val()
+            },
+            (function (response) {
+
+                if (response == true) {
+                    notesElement.innerHTML = `<div class="notediv">
+                                                    <p> saved </p>
+                                                    <textarea rows="5">${$("#noteinbox").val()}</textarea>
+                                                    <p class="tagtext">${$("#taginbox").val()}</p>
+                                               </div>`  + notesElement.innerHTML;
+                }
+                else {
+                    notesElement.innerHTML = `<div class="notediv">
+                                                    <p> failed </p>
+                                                    <textarea rows="5">try again</textarea>
+                                                    <p class="tagtext">error</p>
+                                               </div>`  + notesElement.innerHTML;
+                }
+                saveButton.innerText = "Save"
+            }))
+    })
+
+    searchButton.addEventListener("click", function (evnet) {
+        //stop default action
+        event.preventDefault();
+
+        if (!searchIput.value) {
+            searchIput.placeholder = "keyword!!!"
+            setTimeout(() => {
+                searchIput.placeholder = "search"
+            }, 4000);
+            return
+        }
+        searchButton.textContent = "Searching.."
+        searchButton.disabled = true;
+        setTimeout(function () {
+            searchButton.disabled = false;
+        }, 4000);
+        nResult = 0;
+        $.get("/searchnote",
+            { keyword: $("#searchinbox").val() },
+            (function (response) {
+                notelist = response;
+                notesElement.innerHTML = ""
+                notelist.forEach(function (anote) {
+                    notesElement.innerHTML = notesElement.innerHTML + `<div class="notediv">
+                                                <textarea rows="5">${anote[1]}</textarea>
+                                                <p class="tagtext"> ${anote[0]}</p>
+                                              </div>`;
+                    nResult += 1;
+                });
+                notesElement.innerHTML = `<p class="notice">Found ${nResult} note(s): ` + notesElement.innerHTML;
+                searchButton.textContent = "Search"
+            }))
+    })
+
+    
+
+    function zoom() {
+        noteid = "#" + "notediv" + event.srcElement.value
+        console.log(noteid)
+        note = document.querySelector(noteid)
+        
+        if (event.srcElement.zoomed) {
+            event.srcElement.zoomed=false;
+            event.srcElement.textContent="🍳+"
+            note.style.width="32%"
+            if(note.nextElementSibling){
+                note.style.width = note.nextElementSibling.style.width;
+            }
+            note.firstElementChild.rows = "5"
+            note.firstElementChild.style.overflow = "hidden"
+        }
+        else {
+            event.srcElement.zoomed=true;
+            event.srcElement.textContent="🍳-"
+            note.style.width = "98%"
+            note.firstElementChild.rows = "13"
+            note.firstElementChild.style.overflow = "visible"            
+        }
+    }
+</script>
+
+{% endblock %}
