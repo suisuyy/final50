@@ -132,15 +132,19 @@ def savenote():
 
 
 @app.route("/deletenote",methods=["GET"])
-@login_required
+
 def deletenote():
     """
         use request.form.get("id") to get id of the note need to be deleted
         if delete successfully, return jsonify(True), else return jsonify(False)
     """
-    note_id = request.form.get("id")
-    db.execute("DELETE FROM notes WHERE id={}".format(note_id) )
-    return jsonify(True)
+    id = request.args.get("id")
+    if session["user_id"]==2:
+        db.execute("DELETE FROM notes WHERE id={}".format(id) )
+        return jsonify(True)
+    
+    return jsonify(False)
+    
 
 
 @app.route("/searchnote",methods=["GET"])
