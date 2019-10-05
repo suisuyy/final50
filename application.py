@@ -89,13 +89,6 @@ def savefile():
         return apology("no error,file saved succefully",200)
 
 
-@app.route("/getfile",methods=["GET"])
-def getfile():
-    filename=request.args.get("filename")
-    if not filename:
-        return jsonify("no file name to get a file")
-    return app.send_static_file("files/{}".format(filename))
-
 
 @app.route("/note", methods=["GET"])
 #@login_required
