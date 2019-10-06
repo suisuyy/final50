@@ -86,19 +86,39 @@ saveButton.addEventListener("click", function (evnet) {
     }, 8000);
 
 
-
+    xhr = new XMLHttpRequest();
+    xhr.open("POST", '/savenote', true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.responseType = 'text';
+    xhr.onreadystatechange = function() { // Call a function when the state changes.
+        if (this.readyState === XMLHttpRequest.DONE && this.status === 200 && this.response) {
+            // Request finished. Do processing here.
+            
+            notesElement.innerHTML = `<div class="notediv">
+                                                <p> saved </p>
+                                                <textarea rows="5">{noteIput.value}</textarea>
+                                                <p class="tagtext">{tagIput.value}</p>
+                                           </div>`  + notesElement.innerHTML;
+                saveButton.innerText = "Saved";
+                tagIput.value=this.response;
+        }
+        else{
+            
+        }
+    }
+    xhr.send(`usertag=${tagIput.value}&usernote=${noteIput.value}`);
     $.post("/savenote",
         {
-            usertag: $("#taginbox").val(),
-            usernote: $("#noteinbox").val()
+            usertag: tagIput.value,
+            usernote: noteIput.value
         },
         (function (response) {
 
             if (response == true) {
                 notesElement.innerHTML = `<div class="notediv">
                                                 <p> saved </p>
-                                                <textarea rows="5">${$("#noteinbox").val()}</textarea>
-                                                <p class="tagtext">${$("#taginbox").val()}</p>
+                                                <textarea rows="5">{noteIput.value}</textarea>
+                                                <p class="tagtext">{tagIput.value}</p>
                                            </div>`  + notesElement.innerHTML;
                 saveButton.innerText = "Saved";
                 tagIput.value="";
@@ -162,16 +182,16 @@ function zoom() {
 
     if (event.srcElement.zoomed) {
         event.srcElement.zoomed = false;
-        event.srcElement.textContent = "🍳+"
+        event.srcElement.textContent = "🍳+";
         note.style.width = oldSize;
-        note.firstElementChild.rows = "5"
-        note.firstElementChild.style.overflow = "hidden"
+        note.firstElementChild.rows = "5";
+        note.firstElementChild.style.overflow = "hidden";
     }
     else {
         event.srcElement.zoomed = true;
-        event.srcElement.textContent = "🍳-"
-        note.style.width = "98%"
-        note.firstElementChild.rows = "13"
-        note.firstElementChild.style.overflow = "visible"
+        event.srcElement.textContent = "🍳-";
+        note.style.width = "98%";
+        note.firstElementChild.rows = "13";
+        note.firstElementChild.style.overflow = "visible";
     }
 }

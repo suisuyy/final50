@@ -75,17 +75,20 @@ def savefile():
         if file.filename == '' or request.form.get("filename") == '':
             flash('No selected file')
             return apology("not found file name",404)
-
+        #check filename is in database
         if db.execute("SELECT * FROM files WHERE name='{}'".format(request.form.get("filename"))):
             return apology("file name have used,choose another",406)
+        #check if file name allowed
         if file and allowed_file(file.filename) and allowed_file(request.form.get("filename")):
             filename = secure_filename(request.form.get("filename"))
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        else:
+            return apology("file name not allowed")
         file.seek(0, os.SEEK_END)
         filesize=round(file.tell()/1024/1024,3)
         #insert to databse files table
         db.execute("INSERT INTO 'files' ('id','name','size') VALUES (NULL,'{}','{}')".format(request.form.get("filename"),filesize))
-        db.execute("UPDATE files SET id='0', name='total', size='{}' WHERE rowid = 0".format(total["size"]+filesize))
+        db.execute("UPDATE files SET id='0', name='total', size='{}' WHERE rowid = 0".format(round(total["size"]+filesize,3)) )
         return apology("no error,file saved succefully",200)
 
 
