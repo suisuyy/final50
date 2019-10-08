@@ -96,44 +96,20 @@ saveButton.addEventListener("click", function (evnet) {
             
             notesElement.innerHTML = `<div class="notediv">
                                                 <p> saved </p>
-                                                <textarea rows="5">{noteIput.value}</textarea>
-                                                <p class="tagtext">{tagIput.value}</p>
+                                                <textarea rows="5">${noteIput.value}</textarea>
+                                                <div class="tagtext">${tagIput.value}</div>
                                            </div>`  + notesElement.innerHTML;
                 saveButton.innerText = "Saved";
-                tagIput.value=this.response;
+                setTimeout(function () {
+                    saveButton.textContent = "Save";
+                }, 4000);
         }
         else{
             
         }
     }
     xhr.send(`usertag=${tagIput.value}&usernote=${noteIput.value}`);
-    $.post("/savenote",
-        {
-            usertag: tagIput.value,
-            usernote: noteIput.value
-        },
-        (function (response) {
-
-            if (response == true) {
-                notesElement.innerHTML = `<div class="notediv">
-                                                <p> saved </p>
-                                                <textarea rows="5">{noteIput.value}</textarea>
-                                                <p class="tagtext">{tagIput.value}</p>
-                                           </div>`  + notesElement.innerHTML;
-                saveButton.innerText = "Saved";
-                tagIput.value="";
-            }
-            else {
-                notesElement.innerHTML = `<div class="notediv" >
-                                                <p> failed </p>
-                                                <textarea rows="5">try again</textarea>
-                                                <p class="tagtext">error</p>
-                                           </div>`  + notesElement.innerHTML;
-            }
-            setTimeout(function () {
-                saveButton.textContent = "Save";
-            }, 4000);
-        }))
+    
 })
 
 searchButton.addEventListener("click", function (evnet) {
