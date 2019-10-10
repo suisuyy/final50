@@ -49,12 +49,10 @@ window.addEventListener('resize', function () {
 noteIput = document.querySelector("#noteinbox")
 tagIput = document.querySelector("#taginbox")
 searchIput = document.querySelector("#searchinbox")
-
 notesElement = document.querySelector("#allnotes");
-
 saveButton = document.querySelector("#savenotebtn")
-
 searchButton = document.querySelector("#searchnotebtn")
+xhr = new XMLHttpRequest();
 
 saveButton.addEventListener("click", function (evnet) {
     //stop default action
@@ -86,8 +84,7 @@ saveButton.addEventListener("click", function (evnet) {
     }, 8000);
 
 
-    xhr = new XMLHttpRequest();
-    xhr.open("POST", '/savenote', true);
+    xhr.open("POST", '/note', true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
     xhr.responseType = 'text';
     xhr.onreadystatechange = function() { // Call a function when the state changes.
@@ -127,13 +124,17 @@ searchButton.addEventListener("click", function (evnet) {
     searchButton.disabled = true;
     setTimeout(function () {
         searchButton.disabled = false;
-    }, 4000);
+    }, 6000);
     nResult = 0;
-    $.get("/searchnote",
-        { keyword: $("#searchinbox").val() },
-        (function (response) {
-            notelist = response;
+    
+    xhr.open("GET",`/note?search=1&keyword=${searchIput.value}`,true);
+    xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded");
+    xhr.responseType="text";
+    xhr.onreadystatechange=function(){
+        if(this.readyState===XMLHttpRequest.DONE && this.status===200){
+            notelist =JSON.parse( this.response);
             notesElement.innerHTML = ""
+            notelist.forEach(function(){console.log("1")})
             notelist.forEach(function (anote) {
                 notesElement.innerHTML = notesElement.innerHTML + `<div class="notediv" id="notediv${anote[2]}">
                                             <textarea rows="5">${anote[1]}</textarea>
@@ -146,7 +147,9 @@ searchButton.addEventListener("click", function (evnet) {
             setTimeout(function () {
                 searchButton.textContent = "Search";
             }, 4000);
-        }))
+        }
+    }
+    xhr.send();
 })
 
 

@@ -93,7 +93,7 @@ def savefile():
 
 
 
-@app.route("/note", methods=["GET"])
+@app.route("/note", methods=["GET","POST"])
 #@login_required
 def note():
     """
@@ -104,34 +104,33 @@ def note():
     # if user not log in,he will use default id =0
     if  "user_id" not in session:
         session["user_id"]=0
-    notes_rows=db.execute("SELECT * FROM notes WHERE user_id = :user_id",user_id=session["user_id"])
-    noteslist=[]
-    note_counter=0
-    for row in notes_rows:
-        noteslist.insert(0,[row["tag"],row["note"],row["id"]])
-        note_counter+=1
-        if note_counter>100:
-            break
-    return render_template("note.html", notes=noteslist, user_id=session["user_id"])
-
-
-@app.route("/savenote", methods=["GET", "POST"])
-#@login_required
-def savenote():
-    """
-        deal with both POST and GET
-        if GET return render_template("note.html")
-        if POST, use request.form.get("usertag") and request.form.get("usernote") to get input
-        then store them in database
-        if every thing is ok return jsonify(True) ,or return  jsonify(False)
-    """
-    #if GET simply redirct to /note
+    #if get,display notes or search notes
     if request.method=="GET":
-        return redirect("/note")
-    usertag=request.form.get("usertag")
-    usernote=request.form.get("usernote")
-    db.execute("INSERT INTO notes (id,user_id,tag,note) VALUES (NULL,:user_id,:tag,:note) ",user_id=session["user_id"],tag=usertag,note=usernote)
-    return jsonify(True)
+        #if search
+        if request.args.get("search")=="1":
+            keyword=request.args.get("keyword")
+            result_rows=db.execute("SELECT * FROM notes  WHERE note LIKE '%{}%'".format(keyword))
+            result_list=[]
+            for row in result_rows:
+                if row["user_id"]==session["user_id"]:
+                    result_list.insert(0,[row["tag"],row["note"],row["id"]])
+            return jsonify(result_list)
+
+        notes_rows=db.execute("SELECT * FROM notes WHERE user_id = :user_id",user_id=session["user_id"])
+        noteslist=[]
+        note_counter=0
+        for row in notes_rows:
+            noteslist.insert(0,[row["tag"],row["note"],row["id"]])
+            note_counter+=1
+            if note_counter>100:
+                break
+        return render_template("note.html", notes=noteslist, user_id=session["user_id"])
+    else:
+        usertag=request.form.get("usertag")
+        usernote=request.form.get("usernote")
+        db.execute("INSERT INTO notes (id,user_id,tag,note) VALUES (NULL,:user_id,:tag,:note) ",user_id=session["user_id"],tag=usertag,note=usernote)
+        return jsonify(True) 
+        
 
 
 @app.route("/deletenote",methods=["GET"])
@@ -156,16 +155,8 @@ def searchnote():
         use request.args.get("keyword") to get keyword,then search the keyword
         return: a 3 elements list like[ ["tag","text",id], ["game","CSgo",0],["book","the c program language",1] ]
     """
-    
-    keyword=request.args.get("keyword")
-    #print("****keyword",keyword)
-    result_rows=db.execute("SELECT * FROM notes  WHERE note LIKE '%{}%'".format(keyword))
-    result_list=[]
-    for row in result_rows:
-        if row["user_id"]==session["user_id"]:
-            result_list.insert(0,[row["tag"],row["note"],row["id"]])
-    return jsonify(result_list)
 
+    
 
 @app.route("/")
 def index():
